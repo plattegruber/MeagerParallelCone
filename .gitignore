@@ -35,3 +35,9 @@ workspace-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# Replit-specific
+.replit
+.replit.nix
+replit.nix
+.upm/
+.config/
