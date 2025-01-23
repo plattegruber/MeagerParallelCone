@@ -16,7 +16,8 @@ defmodule Workspace.Application do
       # Start a worker by calling: Workspace.Worker.start_link(arg)
       # {Workspace.Worker, arg},
       # Start to serve requests, typically the last entry
-      WorkspaceWeb.Endpoint
+      WorkspaceWeb.Endpoint,
+      Workspace.GameState
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
