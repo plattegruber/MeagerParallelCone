@@ -18,6 +18,22 @@ Hooks.DeviceId = {
   }
 }
 
+Hooks.HPAnimation = {
+  mounted() {
+    this.handleHPChange()
+  },
+  updated() {
+    this.handleHPChange()
+  },
+  handleHPChange() {
+    console.log('Handling HP change for', this.el.id)
+    this.el.classList.add('animate')
+    setTimeout(() => {
+      this.el.classList.remove('animate')
+    }, 200) // Match this to your animation duration
+  }
+}
+
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,

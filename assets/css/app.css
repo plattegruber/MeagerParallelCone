@@ -3,3 +3,17 @@
 @import "tailwindcss/utilities";
 
 /* This file is for your main application CSS */
+@keyframes bounce-once {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .animate-bounce-once {
+    animation: bounce-once 0.5s ease-in-out;
+  }
+}

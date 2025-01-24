@@ -3,7 +3,7 @@ defmodule Workspace.GameState do
   
   @initial_state %{
     phase: :prep,
-    players: ["Gandalf", "Aragorn", "Legolas"],
+    players: ["Gandalf"],
     claimed_players: %{},  # Will be %{"Gandalf" => "device_123"}
     player_initiatives: %{},
     monsters: [],
