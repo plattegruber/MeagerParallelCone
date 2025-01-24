@@ -12,3 +12,8 @@ channel = "stable-24_05"
 localPort = 4000
 externalPort = 80
 exposeLocalhost = true
+
+[deployment]
+build = ["sh", "-c", "mix deps.get && mix assets.deploy && mix compile"]
+run = ["sh", "-c", "mix phx.server"]
+deploymentTarget = "cloudrun"

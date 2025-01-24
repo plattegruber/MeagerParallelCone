@@ -17,7 +17,8 @@ defmodule WorkspaceWeb.Router do
   scope "/", WorkspaceWeb do
     pipe_through :browser
 
-    live "/", EncounterLive
+    live "/", PlayerLive
+    live "/dm", DMLive
   end
 
   # Other scopes may use custom stacks.

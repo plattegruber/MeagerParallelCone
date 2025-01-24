@@ -1,9 +1,10 @@
 defmodule Workspace.GameState do
   use GenServer
-
+  
   @initial_state %{
-    page: :setup,
+    phase: :prep,
     players: ["Gandalf", "Aragorn", "Legolas"],
+    claimed_players: %{},  # Will be %{"Gandalf" => "device_123"}
     player_initiatives: %{},
     monsters: [],
     combat_order: [],

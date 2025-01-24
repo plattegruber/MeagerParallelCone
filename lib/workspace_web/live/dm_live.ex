@@ -1,4 +1,6 @@
-defmodule WorkspaceWeb.EncounterLive do
+import WorkspaceWeb.GameComponents
+
+defmodule WorkspaceWeb.DMLive do
   use WorkspaceWeb, :live_view
 
   @monster_bank [
@@ -10,39 +12,51 @@ defmodule WorkspaceWeb.EncounterLive do
   ]
 
   def mount(_params, _session, socket) do
-    initial_state = %{
-      page: :setup,
-      players: ["Gandalf", "Aragorn", "Legolas"],
-      player_initiatives: %{},
-      monsters: [],
-      combat_order: [],
-      current_turn: 0
-    }
-
-    socket = assign(socket, monster_bank: @monster_bank)
-    
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Workspace.PubSub, "game_state")
       state = Workspace.GameState.get_state()
-      {:ok, assign(socket, Map.merge(state, %{monster_bank: @monster_bank}))}
+      {:ok, assign(socket, Map.merge(state, %{monster_bank: @monster_bank, is_dm: true}))}
     else
-      {:ok, assign(socket, Map.merge(initial_state, %{monster_bank: @monster_bank}))}
+      initial_state = %{
+        phase: :prep,
+        is_dm: true,  # Added this line
+        players: ["Gandalf", "Aragorn", "Legolas"],
+        claimed_players: %{},
+        player_initiatives: %{},
+        monsters: [],
+        combat_order: [],
+        current_turn: 0,
+        monster_bank: @monster_bank
+      }
+      {:ok, assign(socket, initial_state)}
     end
   end
 
   def render(assigns) do
-    case assigns.page do
-      :setup -> render_setup(assigns)
+    case assigns.phase do
+      :prep -> render_prep(assigns)
+      :rolling -> render_rolling(assigns)
       :combat -> render_combat(assigns)
     end
   end
 
-  def render_setup(assigns) do
+  # Just moving our existing setup view to prep for now
+  def render_prep(assigns) do
     ~H"""
     <div class="min-h-screen bg-gray-50 py-8">
+      <.phase_indicator {assigns} />
       <div class="container mx-auto px-4 max-w-6xl">
-        <h1 class="text-4xl font-bold text-gray-900 mb-8">Setup Encounter</h1>
-        
+        <div class="flex justify-between items-center mb-8">
+          <h1 class="text-4xl font-bold text-gray-900">DM Setup</h1>
+          <button 
+            phx-click="start_rolling" 
+            type="button" 
+            class="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-8 rounded-lg text-lg transition-colors duration-200 shadow-sm"
+          >
+            Start Rolling Phase
+          </button>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <!-- Left Column -->
           <div class="space-y-8">
@@ -51,17 +65,13 @@ defmodule WorkspaceWeb.EncounterLive do
               <h2 class="text-2xl font-semibold text-gray-800 mb-4">Players</h2>
               <div class="space-y-4">
                 <%= for player <- @players do %>
-                  <div class="flex items-center gap-4">
-                    <div class="w-32">
-                      <label class="font-medium text-gray-700"><%= player %>'s Initiative:</label>
-                    </div>
-                    <input 
-                      type="number" 
-                      phx-blur="set_player_initiative" 
-                      value={Map.get(@player_initiatives, player)} 
-                      phx-value-player={player} 
-                      class="w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    />
+                  <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span class="font-medium text-gray-900"><%= player %></span>
+                    <%= if Map.has_key?(@claimed_players, player) do %>
+                      <span class="text-sm text-green-600">Claimed</span>
+                    <% else %>
+                      <span class="text-sm text-gray-500">Unclaimed</span>
+                    <% end %>
                   </div>
                 <% end %>
               </div>
@@ -159,25 +169,109 @@ defmodule WorkspaceWeb.EncounterLive do
             </div>
           </div>
         </div>
+      </div>
+    </div>
+    """
+  end
 
-        <!-- Start Combat Button -->
-        <div class="mt-8 flex justify-center">
-          <button 
-            phx-click="start_combat" 
-            type="button" 
-            class="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-8 rounded-lg text-lg transition-colors duration-200 shadow-sm"
-          >
-            Start Combat
-          </button>
+  def render_rolling(assigns) do
+    ~H"""
+    <div class="min-h-screen bg-gray-50 py-8">
+      <.phase_indicator {assigns} />
+      <div class="container mx-auto px-4 max-w-4xl">
+        <div class="flex justify-between items-center mb-8">
+          <h1 class="text-4xl font-bold text-gray-900">Waiting for Initiatives</h1>
+          <div class="flex items-center gap-4">
+            <%= if all_players_ready?(assigns) do %>
+              <div class="text-green-600 font-medium">All players ready!</div>
+            <% else %>
+              <div class="text-gray-500">Waiting for players...</div>
+            <% end %>
+            <button 
+              phx-click="start_combat"
+              disabled={not all_players_ready?(assigns)}
+              class={[
+                "px-4 py-2 rounded-lg transition-colors duration-200",
+                if(all_players_ready?(assigns), do: "bg-green-600 hover:bg-green-700 text-white", else: "bg-gray-300 text-gray-500 cursor-not-allowed")
+              ]}
+            >
+              Start Combat
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm p-6">
+          <h2 class="text-2xl font-semibold text-gray-800 mb-4">Player Status</h2>
+          <div class="space-y-4">
+            <%= for player <- @players do %>
+              <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div class="flex items-center gap-4">
+                  <span class="font-medium text-gray-900"><%= player %></span>
+                  <%= cond do %>
+                    <% not Map.has_key?(@claimed_players, player) -> %>
+                      <span class="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">Unclaimed</span>
+                    <% not Map.has_key?(@player_initiatives, player) -> %>
+                      <span class="text-sm text-yellow-600 bg-yellow-50 px-2 py-1 rounded">Waiting for roll</span>
+                    <% true -> %>
+                      <span class="text-sm text-green-600 bg-green-50 px-2 py-1 rounded">Ready</span>
+                  <% end %>
+                </div>
+                <%= if Map.has_key?(@player_initiatives, player) do %>
+                  <div class="flex items-center gap-2">
+                    <span class="font-medium">Initiative: <%= @player_initiatives[player] %></span>
+                    <button 
+                      phx-click="clear_initiative" 
+                      phx-value-player={player}
+                      class="text-red-600 hover:text-red-800"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Monster Preview -->
+        <div class="mt-8 bg-white rounded-lg shadow-sm p-6">
+          <h2 class="text-2xl font-semibold text-gray-800 mb-4">Monsters</h2>
+          <%= if Enum.empty?(@monsters) do %>
+            <div class="text-center py-8">
+              <p class="text-gray-500">No monsters added yet</p>
+              <button 
+                phx-click="back_to_prep"
+                class="mt-4 text-indigo-600 hover:text-indigo-800 font-medium"
+              >
+                Back to prep phase
+              </button>
+            </div>
+          <% else %>
+            <div class="space-y-3">
+              <%= for monster <- @monsters do %>
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <span class="font-medium text-gray-900"><%= monster.name %></span>
+                  <div class="text-sm text-gray-600">
+                    <span class="mr-4">HP: <%= monster.hp %></span>
+                    <span>Initiative: +<%= monster.initiative_bonus %></span>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
         </div>
       </div>
     </div>
     """
   end
 
+  # Keep our existing combat view
   def render_combat(assigns) do
     ~H"""
     <div class="min-h-screen bg-gray-50 py-8">
+      <.phase_indicator {assigns} />
       <div class="container mx-auto px-4 max-w-4xl">
         <div class="flex justify-between items-center mb-8">
           <h1 class="text-4xl font-bold text-gray-900">Combat Tracker</h1>
@@ -197,7 +291,7 @@ defmodule WorkspaceWeb.EncounterLive do
             </button>
           </div>
         </div>
-        
+
         <div class="space-y-4">
           <%= for {creature, index} <- Enum.with_index(@combat_order) do %>
             <div class={[
@@ -247,38 +341,11 @@ defmodule WorkspaceWeb.EncounterLive do
   end
 
   def handle_info({:state_updated, new_state}, socket) do
-    {:noreply, assign(socket,
-      page: new_state.page,
-      players: new_state.players,
-      player_initiatives: new_state.player_initiatives,
-      monsters: new_state.monsters,
-      combat_order: new_state.combat_order,
-      current_turn: new_state.current_turn,
-      monster_bank: @monster_bank
-    )}
+    {:noreply, assign(socket, Map.merge(new_state, %{monster_bank: @monster_bank}))}
   end
 
-  def handle_event("reset_game", _params, socket) do
-    new_state = %{
-      page: :setup,
-      players: ["Gandalf", "Aragorn", "Legolas"],
-      player_initiatives: %{},
-      monsters: [],
-      combat_order: [],
-      current_turn: 0
-    }
-    Workspace.GameState.set_state(new_state)
-    {:noreply, socket}
-  end
-
-  def handle_event("set_player_initiative", %{"player" => player, "value" => ""}, socket) do
-    new_state = Map.update!(socket.assigns, :player_initiatives, &Map.delete(&1, player))
-    Workspace.GameState.set_state(new_state)
-    {:noreply, socket}
-  end
-
-  def handle_event("set_player_initiative", %{"player" => player, "value" => value}, socket) do
-    new_state = Map.update!(socket.assigns, :player_initiatives, &Map.put(&1, player, value))
+  def handle_event("start_rolling", _params, socket) do
+    new_state = Map.put(socket.assigns, :phase, :rolling)
     Workspace.GameState.set_state(new_state)
     {:noreply, socket}
   end
@@ -332,12 +399,70 @@ defmodule WorkspaceWeb.EncounterLive do
                       |> Enum.sort_by(& &1.initiative, :desc)
 
         new_state = Map.merge(socket.assigns, %{
-          page: :combat,
+          phase: :combat,
           combat_order: combat_order,
           current_turn: 0
         })
         Workspace.GameState.set_state(new_state)
         {:noreply, socket}
     end
-    end
-    end
+  end
+
+  def handle_event("modify_hp", %{"amount" => amount, "index" => index}, socket) do
+    index = String.to_integer(index)
+    amount = String.to_integer(amount)
+
+    new_state = Map.update!(socket.assigns, :combat_order, fn order ->
+      List.update_at(order, index, fn creature ->
+        Map.update!(creature, :hp, &max(0, &1 + amount))
+      end)
+    end)
+
+    Workspace.GameState.set_state(new_state)
+    {:noreply, socket}
+  end
+
+  def handle_event("next_turn", _params, socket) do
+    new_state = Map.update!(socket.assigns, :current_turn, fn current ->
+      rem(current + 1, length(socket.assigns.combat_order))
+    end)
+    Workspace.GameState.set_state(new_state)
+    {:noreply, socket}
+  end
+
+  def handle_event("reset_game", _params, socket) do
+    new_state = %{
+      phase: :prep,
+      players: ["Gandalf", "Aragorn", "Legolas"],
+      claimed_players: %{},  # Added this line
+      player_initiatives: %{},
+      monsters: [],
+      combat_order: [],
+      current_turn: 0
+    }
+    Workspace.GameState.set_state(new_state)
+    {:noreply, socket}
+  end
+
+  def handle_event("clear_initiative", %{"player" => player}, socket) do
+    new_initiatives = Map.delete(socket.assigns.player_initiatives, player)
+    new_state = Map.put(socket.assigns, :player_initiatives, new_initiatives)
+    Workspace.GameState.set_state(new_state)
+    {:noreply, socket}
+  end
+
+  def handle_event("back_to_prep", _params, socket) do
+    new_state = Map.put(socket.assigns, :phase, :prep)
+    Workspace.GameState.set_state(new_state)
+    {:noreply, socket}
+  end
+
+  # Helper function to check if all players are ready
+  defp all_players_ready?(assigns) do
+    claimed_players = Map.keys(assigns.claimed_players)
+    initiatives = Map.keys(assigns.player_initiatives)
+
+    # All claimed players have submitted initiatives
+    Enum.all?(claimed_players, &(&1 in initiatives))
+  end
+end
