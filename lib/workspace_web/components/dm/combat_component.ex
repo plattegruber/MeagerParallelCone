@@ -65,6 +65,16 @@ defmodule WorkspaceWeb.DM.CombatComponent do
           <span class="text-gray-600">
             Initiative: <%= @creature.initiative %>
           </span>
+          <%= if Map.get(@creature, :type) == :player do %>
+            <button
+              type="button"
+              phx-click="unlink_player"
+              phx-value-player={@creature.name}
+              class="text-sm text-red-600 hover:text-red-700"
+            >
+              Unlink
+            </button>
+          <% end %>
         </div>
         <.hp_controls creature={@creature} index={@index} />
       </div>

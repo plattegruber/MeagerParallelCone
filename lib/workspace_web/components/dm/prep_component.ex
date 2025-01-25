@@ -44,7 +44,17 @@ defmodule WorkspaceWeb.DM.PrepComponent do
           <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <span class="font-medium text-gray-900"><%= player %></span>
             <%= if Map.has_key?(@claimed_players, player) do %>
-              <span class="text-sm text-green-600">Claimed</span>
+              <div class="flex items-center gap-3">
+                <span class="text-sm text-green-600">Claimed</span>
+                <button
+                  type="button"
+                  phx-click="unlink_player"
+                  phx-value-player={player}
+                  class="text-sm text-red-600 hover:text-red-700"
+                >
+                  Unlink
+                </button>
+              </div>
             <% else %>
               <span class="text-sm text-gray-500">Unclaimed</span>
             <% end %>

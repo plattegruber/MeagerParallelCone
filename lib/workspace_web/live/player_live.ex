@@ -4,12 +4,10 @@ defmodule WorkspaceWeb.PlayerLive do
   alias WorkspaceWeb.Player.{PrepComponent, RollingComponent, CombatComponent}
 
   def mount(_params, _session, socket) do
-    device_id = generate_device_id()
-    
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Workspace.PubSub, "game_state")
       state = Workspace.GameState.get_state()
-      {:ok, assign(socket, Map.merge(state, %{device_id: device_id, is_dm: false}))}
+      {:ok, assign(socket, Map.merge(state, %{device_id: "pending", is_dm: false}))}
     else
       initial_state = %{
         phase: :prep,
@@ -20,17 +18,23 @@ defmodule WorkspaceWeb.PlayerLive do
         monsters: [],
         combat_order: [],
         current_turn: 0,
-        device_id: device_id
+        device_id: "pending"  # Will be updated by the hook
       }
       {:ok, assign(socket, initial_state)}
     end
   end
 
   def render(assigns) do
-    case assigns.phase do
-      :prep -> PrepComponent.prep(assigns)
-      :rolling -> RollingComponent.rolling(assigns)
-      :combat -> CombatComponent.combat(assigns)
+    claimed_device = has_claimed_player?(assigns.claimed_players, assigns.device_id)
+    
+    cond do
+      # Show prep screen if in prep phase or if device hasn't claimed a player
+      assigns.phase == :prep or not claimed_device ->
+        PrepComponent.prep(assigns)
+      assigns.phase == :rolling ->
+        RollingComponent.rolling(assigns)
+      assigns.phase == :combat ->
+        CombatComponent.combat(assigns)
     end
   end
 

@@ -157,4 +157,11 @@ defmodule WorkspaceWeb.DMLive do
     Workspace.GameState.set_state(new_state)
     {:noreply, socket}
   end
+
+  def handle_event("unlink_player", %{"player" => player}, socket) do
+    new_claimed = Map.delete(socket.assigns.claimed_players, player)
+    new_state = Map.put(socket.assigns, :claimed_players, new_claimed)
+    Workspace.GameState.set_state(new_state)
+    {:noreply, socket}
+  end
 end

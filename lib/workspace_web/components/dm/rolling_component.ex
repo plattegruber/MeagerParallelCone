@@ -58,9 +58,29 @@ defmodule WorkspaceWeb.DM.RollingComponent do
                 <% not Map.has_key?(@claimed_players, player) -> %>
                   <span class="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">Unclaimed</span>
                 <% not Map.has_key?(@player_initiatives, player) -> %>
-                  <span class="text-sm text-yellow-600 bg-yellow-50 px-2 py-1 rounded">Waiting for roll</span>
+                  <div class="flex items-center gap-3">
+                    <span class="text-sm text-yellow-600 bg-yellow-50 px-2 py-1 rounded">Waiting for roll</span>
+                    <button
+                      type="button"
+                      phx-click="unlink_player"
+                      phx-value-player={player}
+                      class="text-sm text-red-600 hover:text-red-700"
+                    >
+                      Unlink
+                    </button>
+                  </div>
                 <% true -> %>
-                  <span class="text-sm text-green-600 bg-green-50 px-2 py-1 rounded">Ready</span>
+                  <div class="flex items-center gap-3">
+                    <span class="text-sm text-green-600 bg-green-50 px-2 py-1 rounded">Ready</span>
+                    <button
+                      type="button"
+                      phx-click="unlink_player"
+                      phx-value-player={player}
+                      class="text-sm text-red-600 hover:text-red-700"
+                    >
+                      Unlink
+                    </button>
+                  </div>
               <% end %>
             </div>
             <%= if Map.has_key?(@player_initiatives, player) do %>
