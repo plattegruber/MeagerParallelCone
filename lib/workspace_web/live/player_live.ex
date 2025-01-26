@@ -64,16 +64,20 @@ defmodule WorkspaceWeb.PlayerLive do
     {:noreply, socket}
   end
 
-  def handle_event("modify_hp", %{"amount" => amount, "index" => index}, socket) do
+  # In PlayerLive module, add this new handle_event function:
+  def handle_event("modify_hp_amount", %{"amount" => amount, "type" => type, "index" => index}, socket) do
     index = String.to_integer(index)
     amount = String.to_integer(amount)
-
+    # Convert amount to negative if it's damage
+    final_amount = if type == "damage", do: -amount, else: amount
+    
     new_state = Map.update!(socket.assigns, :combat_order, fn order ->
       List.update_at(order, index, fn creature ->
-        Map.update!(creature, :hp, &max(0, &1 + amount))
+        # Only prevent going below 0, allow going above max
+        Map.update!(creature, :hp, &max(0, &1 + final_amount))
       end)
     end)
-
+    
     Workspace.GameState.set_state(new_state)
     {:noreply, socket}
   end

@@ -2,6 +2,8 @@
 defmodule WorkspaceWeb.Player.CombatComponent do
   use Phoenix.Component
   import WorkspaceWeb.GameComponents
+  import WorkspaceWeb.CoreComponents
+  alias Phoenix.LiveView.JS
 
   def combat(assigns) do
     ~H"""
@@ -65,28 +67,20 @@ defmodule WorkspaceWeb.Player.CombatComponent do
     ~H"""
     <div class="flex items-center space-x-3">
       <button 
-        phx-click="modify_hp" 
-        phx-value-amount="-1" 
+        phx-click={show_modal("hp-modal-#{@index}")}
         phx-value-index={@index}
-        class="bg-red-100 hover:bg-red-200 text-red-700 w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200"
+        class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-md flex items-center justify-center transition-colors duration-200"
       >
-        -
+        Modify HP
       </button>
-
+  
       <%= if is_my_player?(@creature.name, @claimed_players, @device_id) do %>
         <.player_health_display creature={@creature} index={@index} />
       <% else %>
         <.health_indicator creature={@creature} index={@index} />
       <% end %>
-
-      <button 
-        phx-click="modify_hp" 
-        phx-value-amount="1" 
-        phx-value-index={@index}
-        class="bg-green-100 hover:bg-green-200 text-green-700 w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200"
-      >
-        +
-      </button>
+  
+      <.hp_modal index={@index} />
     </div>
     """
   end
@@ -116,6 +110,91 @@ defmodule WorkspaceWeb.Player.CombatComponent do
         class="w-4 h-4 rounded-full transition-all duration-200 group-[.animate]:scale-110"
         style={get_health_indicator_color(@creature.hp, @creature.max_hp)}
       >
+      </div>
+    </div>
+    """
+  end
+
+  def hp_modal(assigns) do
+    ~H"""
+    <div id={"hp-modal-#{@index}"} class="relative z-50 hidden">
+      <div id={"hp-modal-#{@index}-bg"} class="bg-zinc-50/90 fixed inset-0 transition-opacity" aria-hidden="true" />
+      <div
+        class="fixed inset-0 overflow-y-auto"
+        aria-labelledby={"hp-modal-#{@index}-title"}
+        aria-describedby={"hp-modal-#{@index}-description"}
+        role="dialog"
+        aria-modal="true"
+        tabindex="0"
+      >
+        <div class="flex min-h-full items-center justify-center">
+          <div class="w-full max-w-sm p-4 sm:p-6">
+            <div class="rounded-lg bg-white shadow-lg">
+              <div class="p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4" id={"hp-modal-#{@index}-title"}>
+                  Modify HP
+                </h3>
+  
+                <form phx-submit={JS.push("modify_hp_amount") |> hide_modal("hp-modal-#{@index}")}>
+                  <input type="hidden" name="index" value={@index} />
+                  
+                  <div class="space-y-4">
+                    <div class="flex items-center justify-center space-x-4">
+                      <label class="inline-flex items-center">
+                        <input
+                          type="radio"
+                          name="type"
+                          value="damage"
+                          class="form-radio text-red-600"
+                          checked
+                        />
+                        <span class="ml-2 text-gray-700">Damage</span>
+                      </label>
+                      <label class="inline-flex items-center">
+                        <input
+                          type="radio"
+                          name="type"
+                          value="heal"
+                          class="form-radio text-green-600"
+                        />
+                        <span class="ml-2 text-gray-700">Heal</span>
+                      </label>
+                    </div>
+  
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700">Amount</label>
+                      <input
+                        type="number"
+                        name="amount"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        required
+                        min="0"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                      />
+                    </div>
+                  </div>
+  
+                  <div class="mt-6 flex items-center justify-end space-x-3">
+                    <button
+                      type="button"
+                      class="rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                      phx-click={hide_modal("hp-modal-#{@index}")}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      class="rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     """
