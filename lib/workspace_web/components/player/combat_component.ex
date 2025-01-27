@@ -3,26 +3,31 @@ defmodule WorkspaceWeb.Player.CombatComponent do
   use Phoenix.Component
   import WorkspaceWeb.GameComponents
   import WorkspaceWeb.CoreComponents
+  import WorkspaceWeb.HistoryPanelComponent
   alias Phoenix.LiveView.JS
 
   def combat(assigns) do
     ~H"""
     <div class="min-h-screen bg-gray-50 py-8">
       <.phase_indicator {assigns} />
-      <div class="container mx-auto px-4 max-w-4xl">
-        <h1 class="text-4xl font-bold text-gray-900 mb-8">Combat</h1>
-
-        <div class="space-y-4">
-          <%= for {creature, index} <- Enum.with_index(@combat_order) do %>
-            <.creature_card 
-              creature={creature}
-              index={index}
-              current_turn={@current_turn}
-              claimed_players={@claimed_players}
-              device_id={@device_id}
-            />
-          <% end %>
+      <div class="lg:flex lg:gap-8">
+        <div class="flex-1">
+          <div class="container mx-auto px-4 max-w-4xl">
+            <h1 class="text-4xl font-bold text-gray-900 mb-8">Combat</h1>
+            <div class="space-y-4">
+              <%= for {creature, index} <- Enum.with_index(@combat_order) do %>
+                <.creature_card 
+                  creature={creature}
+                  index={index}
+                  current_turn={@current_turn}
+                  claimed_players={@claimed_players}
+                  device_id={@device_id}
+                />
+              <% end %>
+            </div>
+          </div>
         </div>
+        <.history_panel combat_history={@combat_history} is_dm={@is_dm} />
       </div>
     </div>
     """

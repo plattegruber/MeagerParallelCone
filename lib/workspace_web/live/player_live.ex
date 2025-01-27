@@ -68,18 +68,40 @@ defmodule WorkspaceWeb.PlayerLive do
   def handle_event("modify_hp_amount", %{"amount" => amount, "type" => type, "index" => index}, socket) do
     index = String.to_integer(index)
     amount = String.to_integer(amount)
+    creature = Enum.at(socket.assigns.combat_order, index)
+    
+    # Create history entry for player-initiated changes
+    history_entry = %{
+      creature_name: creature.name,
+      type: String.to_atom(type),
+      amount: amount,
+      source: get_player_name(socket.assigns.claimed_players, socket.assigns.device_id)
+    }
+    
+    # Add to history first - this will update the state with new history
+    Workspace.GameState.add_history_entry(history_entry)
+    
+    # Get the latest state which includes our new history entry
+    current_state = Workspace.GameState.get_state()
+    
     # Convert amount to negative if it's damage
     final_amount = if type == "damage", do: -amount, else: amount
     
-    new_state = Map.update!(socket.assigns, :combat_order, fn order ->
+    # Update the combat order in the latest state
+    new_state = Map.update!(current_state, :combat_order, fn order ->
       List.update_at(order, index, fn creature ->
-        # Only prevent going below 0, allow going above max
         Map.update!(creature, :hp, &max(0, &1 + final_amount))
       end)
     end)
     
     Workspace.GameState.set_state(new_state)
     {:noreply, socket}
+  end
+  
+  # Add helper function
+  defp get_player_name(claimed_players, device_id) do
+    {name, _} = Enum.find(claimed_players, fn {_, id} -> id == device_id end)
+    name
   end
 
   def handle_event("submit_initiative", %{"initiative" => initiative, "player" => player} = _params, socket) do

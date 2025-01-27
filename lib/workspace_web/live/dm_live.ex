@@ -123,6 +123,11 @@ defmodule WorkspaceWeb.DMLive do
     {:noreply, socket}
   end
 
+  def handle_event("delete_history_entry", %{"entry-id" => entry_id}, socket) do
+    Workspace.GameState.delete_history_entry(entry_id)
+    {:noreply, socket}
+  end
+
   def handle_event("next_turn", _params, socket) do
     new_state = Map.update!(socket.assigns, :current_turn, fn current ->
       rem(current + 1, length(socket.assigns.combat_order))

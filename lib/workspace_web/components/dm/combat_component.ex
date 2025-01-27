@@ -2,14 +2,20 @@
 defmodule WorkspaceWeb.DM.CombatComponent do
   use Phoenix.Component
   import WorkspaceWeb.GameComponents
+  import WorkspaceWeb.HistoryPanelComponent
 
   def combat(assigns) do
     ~H"""
     <div class="min-h-screen bg-gray-50 py-8">
       <.phase_indicator {assigns} />
-      <div class="container mx-auto px-4 max-w-4xl">
-        <.header_section />
-        <.combat_order combat_order={@combat_order} current_turn={@current_turn} />
+      <div class="lg:flex lg:gap-8">
+        <div class="flex-1">
+          <div class="container mx-auto px-4 max-w-4xl">
+            <.header_section />
+            <.combat_order combat_order={@combat_order} current_turn={@current_turn} />
+          </div>
+        </div>
+        <.history_panel combat_history={@combat_history} is_dm={@is_dm} />
       </div>
     </div>
     """
