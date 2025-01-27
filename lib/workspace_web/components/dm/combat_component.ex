@@ -55,17 +55,21 @@ defmodule WorkspaceWeb.DM.CombatComponent do
   end
 
   def creature_card(assigns) do
-    ~H"""
+  ~H"""
     <div class={[
       "bg-white rounded-lg shadow-sm p-4 border-2 transition-all duration-200",
-      if(@current_turn == @index, do: "border-indigo-500 ring-2 ring-indigo-200", else: "border-transparent")
+      if(@current_turn == @index, do: "border-indigo-500 ring-2 ring-indigo-200", else: "border-transparent"),
+      if(Map.get(@creature, :dead, false), do: "opacity-50 bg-gray-50")
     ]}>
       <div class="flex justify-between items-center">
         <div class="flex items-center space-x-4">
           <%= if @current_turn == @index do %>
             <div class="w-2 h-2 bg-indigo-500 rounded-full"></div>
           <% end %>
-          <span class="font-semibold text-lg text-gray-900">
+          <span class={[
+            "font-semibold text-lg",
+            if(Map.get(@creature, :dead, false), do: "text-gray-500 line-through", else: "text-gray-900")
+          ]}>
             <%= @creature.name %>
           </span>
           <span class="text-gray-600">
@@ -82,7 +86,19 @@ defmodule WorkspaceWeb.DM.CombatComponent do
             </button>
           <% end %>
         </div>
-        <.hp_controls creature={@creature} index={@index} />
+        <div class="flex items-center space-x-3">
+          <button 
+            phx-click="toggle_dead"
+            phx-value-index={@index}
+            class={[
+              "px-3 py-1 rounded-md text-sm transition-colors duration-200",
+              if(Map.get(@creature, :dead, false), do: "bg-green-100 hover:bg-green-200 text-green-700", else: "bg-gray-100 hover:bg-gray-200 text-gray-700")
+            ]}
+          >
+            <%= if Map.get(@creature, :dead, false), do: "Mark Alive", else: "Mark Dead" %>
+          </button>
+          <.hp_controls creature={@creature} index={@index} />
+        </div>
       </div>
     </div>
     """

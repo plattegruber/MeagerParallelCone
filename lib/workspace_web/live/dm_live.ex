@@ -169,4 +169,36 @@ defmodule WorkspaceWeb.DMLive do
     Workspace.GameState.set_state(new_state)
     {:noreply, socket}
   end
+
+  def handle_event("toggle_dead", %{"index" => index}, socket) do
+    index = String.to_integer(index)
+    
+    # Get current state
+    current_state = Workspace.GameState.get_state()
+    creature = Enum.at(current_state.combat_order, index)
+    new_status = not Map.get(creature, :dead, false)
+    
+    # Create history entry
+    history_entry = %{
+      creature_name: creature.name,
+      type: if(new_status, do: :death, else: :resurrection),
+      amount: 0  # Not used for death/resurrection
+    }
+    
+    # Add history entry first
+    Workspace.GameState.add_history_entry(history_entry)
+    
+    # Get updated state with new history
+    updated_state = Workspace.GameState.get_state()
+    
+    # Update combat order with dead status
+    new_state = Map.update!(updated_state, :combat_order, fn order ->
+      List.update_at(order, index, fn creature ->
+        Map.put(creature, :dead, new_status)
+      end)
+    end)
+    
+    Workspace.GameState.set_state(new_state)
+    {:noreply, socket}
+  end
 end

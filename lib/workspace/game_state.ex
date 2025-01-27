@@ -54,9 +54,16 @@ defmodule Workspace.GameState do
   defp undo_hp_change(combat_order, entry) do
     Enum.map(combat_order, fn creature ->
       if creature.name == entry.creature_name do
-        # Reverse the HP change
-        reversed_amount = if entry.type == :damage, do: entry.amount, else: -entry.amount
-        Map.update!(creature, :hp, &(max(0, min(&1 + reversed_amount, creature.max_hp))))
+        case entry.type do
+          type when type in [:damage, :heal] ->
+            # Existing HP change logic
+            reversed_amount = if entry.type == :damage, do: entry.amount, else: -entry.amount
+            Map.update!(creature, :hp, &(max(0, min(&1 + reversed_amount, creature.max_hp))))
+          :death ->
+            Map.put(creature, :dead, false)
+          :resurrection ->
+            Map.put(creature, :dead, true)
+        end
       else
         creature
       end
@@ -74,6 +81,8 @@ defmodule Workspace.GameState do
   def set_state(state) do
     # Filter out only the keys we care about
     filtered_state = Map.take(state, Map.keys(@initial_state))
+    # Ensure combat_history is included in the filtered state
+    filtered_state = Map.put_new(filtered_state, :combat_history, [])
     GenServer.cast(__MODULE__, {:set_state, filtered_state})
   end
 

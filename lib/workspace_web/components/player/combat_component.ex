@@ -34,10 +34,11 @@ defmodule WorkspaceWeb.Player.CombatComponent do
   end
 
   def creature_card(assigns) do
-    ~H"""
+  ~H"""
     <div class={[
       "bg-white rounded-lg shadow-sm p-4 border-2 transition-all duration-200",
-      if(@current_turn == @index, do: "border-indigo-500 ring-2 ring-indigo-200", else: "border-transparent")
+      if(@current_turn == @index, do: "border-indigo-500 ring-2 ring-indigo-200", else: "border-transparent"),
+      if(Map.get(@creature, :dead, false), do: "opacity-50 bg-gray-50")
     ]}>
       <div class="flex justify-between items-center">
         <.creature_info creature={@creature} current_turn={@current_turn} index={@index} />
@@ -53,12 +54,15 @@ defmodule WorkspaceWeb.Player.CombatComponent do
   end
 
   def creature_info(assigns) do
-    ~H"""
+  ~H"""
     <div class="flex items-center space-x-4">
       <%= if @current_turn == @index do %>
         <div class="w-2 h-2 bg-indigo-500 rounded-full"></div>
       <% end %>
-      <span class="font-semibold text-lg text-gray-900">
+      <span class={[
+        "font-semibold text-lg",
+        if(Map.get(@creature, :dead, false), do: "text-gray-500 line-through", else: "text-gray-900")
+      ]}>
         <%= @creature.name %>
       </span>
       <span class="text-gray-600">

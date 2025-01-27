@@ -2,7 +2,7 @@ defmodule WorkspaceWeb.HistoryPanelComponent do
   use Phoenix.Component
   
   def history_panel(assigns) do
-    ~H"""
+  ~H"""
     <div class="bg-white shadow-lg rounded-lg p-4 overflow-y-auto
                 lg:w-80 lg:fixed lg:right-4 lg:top-24 lg:bottom-4
                 w-full mt-8 mx-4 lg:mx-0">
@@ -13,10 +13,11 @@ defmodule WorkspaceWeb.HistoryPanelComponent do
             <div class="flex-1">
               <p class="text-sm text-gray-700">
                 <span class="font-medium"><%= entry.creature_name %></span>
-                <%= if entry.type == :damage do %>
-                  took <%= entry.amount %> damage
-                <% else %>
-                  healed <%= entry.amount %> HP
+                <%= case entry.type do %>
+                  <% :damage -> %> took <%= entry.amount %> damage
+                  <% :heal -> %> healed <%= entry.amount %> HP
+                  <% :death -> %> died
+                  <% :resurrection -> %> was resurrected
                 <% end %>
               </p>
             </div>
