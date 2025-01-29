@@ -116,11 +116,10 @@ defmodule WorkspaceWeb.DM.CombatComponent do
         -
       </button>
       <div 
-        phx-hook="HPAnimation"
         id={"hp-display-#{@index}"}
-        class="w-20 text-center font-medium group"
+        class="w-20 text-center font-medium"
       >
-        <span class="inline-block transition-all duration-500 group-[.animate]:animate-bounce-once">
+        <span class="inline-block">
           <%= @creature.hp %>/<%= @creature.max_hp %>
         </span>
       </div>

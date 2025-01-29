@@ -97,11 +97,10 @@ defmodule WorkspaceWeb.Player.CombatComponent do
   def player_health_display(assigns) do
     ~H"""
     <div 
-      phx-hook="HPAnimation"
       id={"hp-display-#{@index}"}
-      class="w-20 text-center font-medium transition-all duration-500 group"
+      class="w-20 text-center font-medium"
     >
-      <span class="inline-block group-[.animate]:animate-bounce-once">
+      <span class="inline-block">
         <%= @creature.hp %>/<%= @creature.max_hp %>
       </span>
     </div>
@@ -111,12 +110,11 @@ defmodule WorkspaceWeb.Player.CombatComponent do
   def health_indicator(assigns) do
     ~H"""
     <div 
-      phx-hook="HPAnimation"
       id={"hp-indicator-#{@index}"}
-      class="w-20 flex items-center justify-center group"
+      class="w-20 flex items-center justify-center"
     >
       <div 
-        class="w-4 h-4 rounded-full transition-all duration-200 group-[.animate]:scale-110"
+        class="w-4 h-4 rounded-full"
         style={get_health_indicator_color(@creature.hp, @creature.max_hp)}
       >
       </div>
