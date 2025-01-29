@@ -57,10 +57,11 @@ defmodule WorkspaceWeb.DM.CombatComponent do
   def creature_card(assigns) do
   ~H"""
     <div class={[
-      "bg-white rounded-lg shadow-sm p-4 border-2 transition-all duration-200",
-      if(@current_turn == @index, do: "border-indigo-500 ring-2 ring-indigo-200", else: "border-transparent"),
-      if(Map.get(@creature, :dead, false), do: "opacity-50 bg-gray-50")
-    ]}>
+    "bg-white rounded-lg shadow-sm p-3 sm:p-4 border-2 transition-all duration-200",
+    "mx-0 sm:mx-0",  # Remove any horizontal margins
+    if(@current_turn == @index, do: "border-indigo-500 ring-2 ring-indigo-200", else: "border-transparent"),
+    if(Map.get(@creature, :dead, false), do: "opacity-50 bg-gray-50")
+  ]}>
       <div class="flex justify-between items-center">
         <div class="flex items-center space-x-4">
           <%= if @current_turn == @index do %>

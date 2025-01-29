@@ -4,14 +4,14 @@ defmodule WorkspaceWeb.GameComponents do
   def phase_indicator(assigns) do
     ~H"""
     <div class="bg-white border-b">
-      <div class="container mx-auto px-4 py-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-8">
-            <div class="flex items-center space-x-2">
+      <div class="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+          <div class="flex items-center">
+            <div class="flex items-center space-x-2 sm:space-x-4 overflow-x-auto pb-1 sm:pb-0">
               <%= for {phase, index} <- Enum.with_index([:prep, :rolling, :combat]) do %>
-                <div class="flex items-center">
+                <div class="flex items-center flex-shrink-0">
                   <div class={[
-                    "flex items-center justify-center h-8 px-4 rounded-full font-medium transition-colors duration-200",
+                    "flex items-center justify-center h-7 sm:h-8 px-3 sm:px-4 rounded-full font-medium text-sm sm:text-base transition-colors duration-200",
                     if(@phase == phase, do: "bg-indigo-100 text-indigo-700", else: "bg-gray-100 text-gray-500")
                   ]}>
                     <%= case phase do %>
@@ -22,7 +22,7 @@ defmodule WorkspaceWeb.GameComponents do
                   </div>
                   <%= if index < 2 do %>
                     <div class={[
-                      "h-0.5 w-8",
+                      "h-0.5 w-4 sm:w-8 flex-shrink-0",
                       phase_line_color(@phase, phase)
                     ]}></div>
                   <% end %>
@@ -30,20 +30,20 @@ defmodule WorkspaceWeb.GameComponents do
               <% end %>
             </div>
           </div>
-
-          <div class="flex items-center">
+  
+          <div class="flex items-center justify-end text-sm sm:text-base">
             <%= case @phase do %>
               <% :prep -> %>
                 <%= if @is_dm do %>
-                  <span class="text-gray-500 mr-4">Add monsters and wait for players</span>
+                  <span class="text-gray-500 sm:mr-4">Add monsters and wait for players</span>
                 <% else %>
                   <%= if has_claimed_player?(@claimed_players, @device_id) do %>
-                    <span class="text-gray-500">Waiting for DM to start rolling phase...</span>
+                    <span class="text-gray-500">Waiting for DM...</span>
                   <% else %>
-                    <span class="text-gray-500">Choose your character to join</span>
+                    <span class="text-gray-500">Choose your character</span>
                   <% end %>
                 <% end %>
-
+  
               <% :rolling -> %>
                 <%= if @is_dm do %>
                   <span class={[
@@ -53,17 +53,17 @@ defmodule WorkspaceWeb.GameComponents do
                     <%= if all_players_ready?(assigns) do %>
                       Ready for combat
                     <% else %>
-                      Waiting for initiatives...
+                      Waiting for rolls...
                     <% end %>
                   </span>
                 <% else %>
                   <%= if has_submitted_initiative?(assigns) do %>
-                    <span class="text-gray-500">Waiting for other players...</span>
+                    <span class="text-gray-500">Waiting for others...</span>
                   <% else %>
-                    <span class="text-gray-500">Submit your initiative roll</span>
+                    <span class="text-gray-500">Roll initiative</span>
                   <% end %>
                 <% end %>
-
+  
               <% :combat -> %>
                 <%= if @is_dm do %>
                   <span class="text-gray-500">Round <%= @current_turn + 1 %></span>

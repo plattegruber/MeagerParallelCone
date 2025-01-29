@@ -1,4 +1,3 @@
-# lib/workspace_web/live/player_live.ex
 defmodule WorkspaceWeb.PlayerLive do
   use WorkspaceWeb, :live_view
   alias WorkspaceWeb.Player.{PrepComponent, RollingComponent, CombatComponent}
@@ -7,7 +6,12 @@ defmodule WorkspaceWeb.PlayerLive do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(Workspace.PubSub, "game_state")
       state = Workspace.GameState.get_state()
-      {:ok, assign(socket, Map.merge(state, %{device_id: "pending", is_dm: false}))}
+      {:ok, assign(socket, Map.merge(state, %{
+        device_id: "pending", 
+        is_dm: false,
+        role: nil,
+        show_notification: false
+      }))}
     else
       initial_state = %{
         phase: :prep,
@@ -18,7 +22,9 @@ defmodule WorkspaceWeb.PlayerLive do
         monsters: [],
         combat_order: [],
         current_turn: 0,
-        device_id: "pending"  # Will be updated by the hook
+        device_id: "pending",
+        role: nil,
+        show_notification: false
       }
       {:ok, assign(socket, initial_state)}
     end
@@ -28,7 +34,6 @@ defmodule WorkspaceWeb.PlayerLive do
     claimed_device = has_claimed_player?(assigns.claimed_players, assigns.device_id)
     
     cond do
-      # Show prep screen if in prep phase or if device hasn't claimed a player
       assigns.phase == :prep or not claimed_device ->
         PrepComponent.prep(assigns)
       assigns.phase == :rolling ->
@@ -39,7 +44,30 @@ defmodule WorkspaceWeb.PlayerLive do
   end
 
   def handle_info({:state_updated, new_state}, socket) do
-    {:noreply, assign(socket, Map.put(new_state, :device_id, socket.assigns.device_id))}
+    my_player = get_my_player(socket.assigns.claimed_players, socket.assigns.device_id)
+    current_role = CombatComponent.determine_player_role(
+      new_state.combat_order,
+      new_state.current_turn,
+      my_player
+    )
+    
+    prev_role = Map.get(socket.assigns, :role)
+    show_notification = current_role != prev_role && prev_role != nil
+  
+    if show_notification do
+      Process.send_after(self(), :hide_notification, 4000)
+    end
+  
+    {:noreply, 
+      socket 
+      |> assign(new_state)  # Assign the game state first
+      |> assign(:device_id, socket.assigns.device_id)  # Keep the device ID
+      |> assign(:role, current_role)  # Add UI-specific state
+      |> assign(:show_notification, show_notification)}  # Add UI-specific state
+  end
+
+  def handle_info(:hide_notification, socket) do
+    {:noreply, assign(socket, :show_notification, false)}
   end
 
   # Group all handle_event functions together
@@ -64,12 +92,11 @@ defmodule WorkspaceWeb.PlayerLive do
     {:noreply, socket}
   end
 
-  # In PlayerLive module, add this new handle_event function:
   def handle_event("modify_hp_amount", %{"amount" => amount, "type" => type, "index" => index}, socket) do
     index = String.to_integer(index)
     amount = String.to_integer(amount)
     creature = Enum.at(socket.assigns.combat_order, index)
-    
+
     # Create history entry for player-initiated changes
     history_entry = %{
       creature_name: creature.name,
@@ -77,28 +104,27 @@ defmodule WorkspaceWeb.PlayerLive do
       amount: amount,
       source: get_player_name(socket.assigns.claimed_players, socket.assigns.device_id)
     }
-    
+
     # Add to history first - this will update the state with new history
     Workspace.GameState.add_history_entry(history_entry)
-    
+
     # Get the latest state which includes our new history entry
     current_state = Workspace.GameState.get_state()
-    
+
     # Convert amount to negative if it's damage
     final_amount = if type == "damage", do: -amount, else: amount
-    
+
     # Update the combat order in the latest state
     new_state = Map.update!(current_state, :combat_order, fn order ->
       List.update_at(order, index, fn creature ->
         Map.update!(creature, :hp, &max(0, &1 + final_amount))
       end)
     end)
-    
+
     Workspace.GameState.set_state(new_state)
     {:noreply, socket}
   end
-  
-  # Add helper function
+
   defp get_player_name(claimed_players, device_id) do
     {name, _} = Enum.find(claimed_players, fn {_, id} -> id == device_id end)
     name
@@ -113,7 +139,14 @@ defmodule WorkspaceWeb.PlayerLive do
     {:noreply, socket}
   end
 
-  # Helper functions used by event handlers
+  # Helper functions
+  defp get_my_player(claimed_players, device_id) do
+    case Enum.find(claimed_players, fn {_player, id} -> id == device_id end) do
+      {player, _} -> player
+      nil -> nil
+    end
+  end
+
   defp generate_device_id do
     :crypto.strong_rand_bytes(16) |> Base.encode16()
   end
