@@ -20,6 +20,7 @@ defmodule WorkspaceWeb.Player.PrepComponent do
   end
 
   def character_selection_card(assigns) do
+    has_chosen = has_claimed_player?(assigns.claimed_players, assigns.device_id)
     ~H"""
     <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6">
       <div class="space-y-3 sm:space-y-4">
@@ -28,22 +29,26 @@ defmodule WorkspaceWeb.Player.PrepComponent do
             player={player}
             claimed_players={@claimed_players}
             device_id={@device_id}
+            disabled={has_chosen}
           />
         <% end %>
       </div>
-      <%= if has_claimed_player?(@claimed_players, @device_id) do %>
-        <div class="mt-6 sm:mt-8 text-center text-gray-600 text-sm sm:text-base">
-          Waiting for other players and DM...
-        </div>
-      <% end %>
     </div>
     """
   end
 
   def character_option(assigns) do
     ~H"""
-    <div class="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg">
-      <span class="font-medium text-gray-900 text-sm sm:text-base"><%= @player %></span>
+    <div class={[
+      "flex items-center justify-between p-3 sm:p-4 rounded-lg",
+      if(@disabled && !is_my_player?(@player, @claimed_players, @device_id), do: "bg-gray-100", else: "bg-gray-50")
+    ]}>
+      <span class={[
+        "font-medium text-sm sm:text-base",
+        if(@disabled && !is_my_player?(@player, @claimed_players, @device_id), do: "text-gray-500", else: "text-gray-900")
+      ]}>
+        <%= @player %>
+      </span>
       <%= if is_player_claimed?(@player, @claimed_players) do %>
         <%= if is_my_player?(@player, @claimed_players, @device_id) do %>
           <div class="text-green-600 font-medium text-sm sm:text-base">
@@ -58,9 +63,12 @@ defmodule WorkspaceWeb.Player.PrepComponent do
         <button 
           phx-click="claim_player"
           phx-value-player={@player}
-          class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 
-                 rounded-md sm:rounded-lg transition-colors duration-200 text-sm sm:text-base
-                 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          disabled={@disabled}
+          class={[
+            "px-3 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg transition-colors duration-200 text-sm sm:text-base",
+            "focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2",
+            if(@disabled, do: "bg-gray-300 text-gray-500 cursor-not-allowed", else: "bg-indigo-600 hover:bg-indigo-700 text-white")
+          ]}
         >
           Choose Character
         </button>
