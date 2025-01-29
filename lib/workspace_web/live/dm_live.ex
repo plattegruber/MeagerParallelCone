@@ -1,5 +1,3 @@
-import WorkspaceWeb.GameComponents
-
 defmodule WorkspaceWeb.DMLive do
   use WorkspaceWeb, :live_view
   alias WorkspaceWeb.DM.{PrepComponent, RollingComponent, CombatComponent}
@@ -18,18 +16,8 @@ defmodule WorkspaceWeb.DMLive do
       state = Workspace.GameState.get_state()
       {:ok, assign(socket, Map.merge(state, %{monster_bank: @monster_bank, is_dm: true}))}
     else
-      initial_state = %{
-        phase: :prep,
-        is_dm: true,  # Added this line
-        players: ["Gandalf", "Aragorn", "Legolas"],
-        claimed_players: %{},
-        player_initiatives: %{},
-        monsters: [],
-        combat_order: [],
-        current_turn: 0,
-        monster_bank: @monster_bank
-      }
-      {:ok, assign(socket, initial_state)}
+      state = Workspace.GameState.get_state()
+      {:ok, assign(socket, Map.merge(state, %{monster_bank: @monster_bank, is_dm: true}))}
     end
   end
 
@@ -42,7 +30,7 @@ defmodule WorkspaceWeb.DMLive do
   end
 
   def handle_info({:state_updated, new_state}, socket) do
-    {:noreply, assign(socket, Map.merge(new_state, %{monster_bank: @monster_bank}))}
+    {:noreply, assign(socket, Map.merge(new_state, %{monster_bank: @monster_bank, is_dm: true}))}
   end
 
   def handle_event("start_rolling", _params, socket) do
@@ -76,7 +64,7 @@ defmodule WorkspaceWeb.DMLive do
   end
 
   def handle_event("start_combat", _params, socket) do
-    case Enum.all?(socket.assigns.players, &Map.has_key?(socket.assigns.player_initiatives, &1)) do
+    case Enum.all?(socket.assigns.players, &Map.has_key?(socket.assigns.player_initiatives, &1.name)) do
       false ->
         {:noreply, socket}
       true ->
@@ -86,10 +74,11 @@ defmodule WorkspaceWeb.DMLive do
         end)
 
         players = Enum.map(socket.assigns.players, fn player ->
-          initiative = socket.assigns.player_initiatives[player]
+          base_initiative = String.to_integer(socket.assigns.player_initiatives[player])
+          bonus = socket.assigns.player_initiative_bonuses[player]
           %{
             name: player,
-            initiative: String.to_integer(initiative),
+            initiative: base_initiative + bonus,
             hp: 100,
             max_hp: 100,
             type: :player
@@ -137,16 +126,7 @@ defmodule WorkspaceWeb.DMLive do
   end
 
   def handle_event("reset_game", _params, socket) do
-    new_state = %{
-      phase: :prep,
-      players: ["Gandalf", "Aragorn", "Legolas"],
-      claimed_players: %{},  # Added this line
-      player_initiatives: %{},
-      monsters: [],
-      combat_order: [],
-      current_turn: 0
-    }
-    Workspace.GameState.set_state(new_state)
+    Workspace.GameState.reset_state()
     {:noreply, socket}
   end
 
@@ -173,25 +153,20 @@ defmodule WorkspaceWeb.DMLive do
   def handle_event("toggle_dead", %{"index" => index}, socket) do
     index = String.to_integer(index)
     
-    # Get current state
     current_state = Workspace.GameState.get_state()
     creature = Enum.at(current_state.combat_order, index)
     new_status = not Map.get(creature, :dead, false)
     
-    # Create history entry
     history_entry = %{
       creature_name: creature.name,
       type: if(new_status, do: :death, else: :resurrection),
-      amount: 0  # Not used for death/resurrection
+      amount: 0
     }
     
-    # Add history entry first
     Workspace.GameState.add_history_entry(history_entry)
     
-    # Get updated state with new history
     updated_state = Workspace.GameState.get_state()
     
-    # Update combat order with dead status
     new_state = Map.update!(updated_state, :combat_order, fn order ->
       List.update_at(order, index, fn creature ->
         Map.put(creature, :dead, new_status)
