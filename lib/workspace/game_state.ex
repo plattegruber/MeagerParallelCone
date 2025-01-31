@@ -3,13 +3,14 @@ defmodule Workspace.GameState do
   
   @initial_state %{
     phase: :prep,
-    players: ["Aric", "Ptolomer", "Finnick"],  # Back to strings
+    players: ["Aric", "Ptolomer", "Finnick", "Thrad"],  # Back to strings
     claimed_players: %{},
     player_initiatives: %{},
     player_initiative_bonuses: %{  # New map for bonuses
-      "Aric" => 2,
-      "Ptolomer" => 5,
-      "Finnick" => 4
+      "Aric" => 5,
+      "Ptolomer" => 3,
+      "Finnick" => 2,
+      "Thrad" => 3
     },
     monsters: [],
     combat_order: [],
