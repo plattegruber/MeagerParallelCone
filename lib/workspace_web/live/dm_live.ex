@@ -5,9 +5,10 @@ defmodule WorkspaceWeb.DMLive do
   @monster_bank [
     %{name: "Goblin", hp: 7, initiative_bonus: 2},
     %{name: "Orc", hp: 15, initiative_bonus: 2},
-    %{name: "Troll", hp: 84, initiative_bonus: 0},
+    %{name: "Standing Mountain Entity", hp: 84, initiative_bonus: 0},
     %{name: "Wolf", hp: 11, initiative_bonus: 2},
-    %{name: "Giant Spider", hp: 26, initiative_bonus: 3}
+    %{name: "Giant Spider", hp: 26, initiative_bonus: 3},
+    %{name: "Crude Mountain Entity", hp: 75, initiative_bonus: 0}
   ]
 
   def mount(_params, _session, socket) do
